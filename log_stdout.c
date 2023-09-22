@@ -36,10 +36,19 @@ int log_stdout(uint i) {
 	*/
 	char log_name[15] = "0.log";
 	// Your code here
-	//这里我觉得是重定向原进程的输入和输出，所以不需要fork
-	log_name[0]=i+'0';
+	uint base = 1, i_temp;
+	if (i != 0) {
+		for (base = 0, i_temp = i; i_temp != 0; ++base, i_temp /= 10);
+		for (uint base_temp = 0, i_temp = i; i_temp != 0; ++base_temp, i_temp /= 10) {
+			log_name[base - base_temp - 1] = '0' + i_temp % 10;
+		}
+		strcpy(log_name + base, ".log");
+	}
 	close(1);
-	open(log_name,O_CREATE|O_WRONLY);
+	if (open(log_name, O_CREATE | O_WRONLY) != 1) {
+		fprintf(2, "log_stdout: open failed\n");
+		return -1;
+	}
 	// End
 	return 0;
 }
