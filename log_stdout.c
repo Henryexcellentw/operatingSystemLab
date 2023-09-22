@@ -15,8 +15,14 @@ int read_stdin(char* buf) {
 	- 0 (int)
 	*/
 	// Your code here
-	// End
+	if(fork()==0){
+		close(1);
+		write(0,buf,strlen(buf));
+		exit(0);
+	}
 	return 0;
+	// End
+	//read stdin into buf
 }
 int log_stdout(uint i) {
 	/*
@@ -30,6 +36,10 @@ int log_stdout(uint i) {
 	*/
 	char log_name[15] = "0.log";
 	// Your code here
+	//这里我觉得是重定向原进程的输入和输出，所以不需要fork
+	log_name[0]=i+'0';
+	close(1);
+	open(log_name,O_CREATE|O_WRONLY);
 	// End
 	return 0;
 }
