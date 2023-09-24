@@ -79,41 +79,38 @@ void sub_process(int p_left[2], int i)
     while (1)
     {
         // m = get a number from left neighbor
-        num_read = read(p_left[0], &m, 1);
-        if (num_read == 0)
+        if (read(p_left[0], &m, 1) == 0)
         {
-            break;
+            if (pid == 0)
+                sub_process(p_right, i + 1);
+            else
+                break;
         }
         // End
         // Use pipe and fork to recursively set up and run the next sub_process if necessary
-        if (prime < 31 && !hasSub)
+        if (prime < 31 && !hasSub) // 有没有必要继续迭代
         {
-            pid = fork();
             pipe(p_right);
+            pid = fork();
             hasSub = true;
-            if (pid == 0) // 子进程
-            {
-
-                sub_process(p_right, i + 1);
-            }
-            else if (pid > 0) // 父进程
+            if (pid > 0) // 父进程
             {
                 close(p_right[0]);
                 close(p_left[1]);
             }
-            else
+            else if (pid < 0)
             {
                 fprintf(2, "composites: fork failed\n");
                 exit(1);
             }
         }
         // End
-        if (m % prime != 0)
+        if (m % prime != 0 && pid > 0)
         { // send m to right neighbor
             write(p_right[1], &m, 1);
             // End
         }
-        else
+        else if (m % prime == 0 && pid > 0)
         {
             printf("composite %d\n", m);
         }
@@ -162,25 +159,26 @@ void composites()
     // Use pipe and fork to recursively set up and run the first sub_process
     pipe(p_right);
     pid = fork();
-    if (pid == 0) // 子进程
-    {
-        sub_process(p_right, i + 1);
-    }
-    else
+    if (pid < 0)
     {
         fprintf(2, "composites: fork failed\n");
         exit(1);
     }
+    if (pid > 0) // 父进程
+    {
+        wait(0);
+        sub_process(p_right, i + 1);
+    }
     // End
     // The first process feeds the numbers 2 through 35 into the pipeline.
-    if (pid > 0) // 父进程
+    if (pid == 0) // 子进程
     {
         close(p_right[0]);
         for (int i = 2; i <= 35; ++i)
         {
             write(p_right[1], &i, 1);
         }
-        wait(0);
+        close(p_right[1]);
     }
     // End
     // Once the first process reaches 35, it should wait until the entire pipeline terminates,
