@@ -70,8 +70,7 @@ void sub_process(int p_left[2], int i)
         exit(1);
     }
     char m, prime;
-    bool hasSub = false;
-    int num_read, p_right[2], pid = 0;
+    int num_read = 0, p_right[2], pid = 0;
     // prime = get a number from left neighbor
     read(p_left[0], &prime, 1);
     // End
@@ -81,6 +80,7 @@ void sub_process(int p_left[2], int i)
         // m = get a number from left neighbor
         if (read(p_left[0], &m, 1) == 0)
         {
+            pid = fork();
             if (pid == 0)
                 sub_process(p_right, i + 1);
             else
@@ -93,18 +93,7 @@ void sub_process(int p_left[2], int i)
         if (prime < 31 && num_read == 1) // 有没有必要继续迭代
         {
             pipe(p_right);
-            pid = fork();
-            hasSub = true;
-            if (pid > 0) // 父进程
-            {
-                close(p_right[0]);
-                close(p_left[1]);
-            }
-            else if (pid < 0)
-            {
-                fprintf(2, "composites: fork failed\n");
-                exit(1);
-            }
+            close(p_left[1]);
         }
         // End
         if (m % prime != 0 && pid > 0)
@@ -117,6 +106,7 @@ void sub_process(int p_left[2], int i)
             printf("composite %d\n", m);
         }
     }
+    close(p_right[0]);
     close(p_left[0]);
     close(p_right[1]);
     // Once the write-side of left neighbor is closed, it should wait until the entire pipeline
