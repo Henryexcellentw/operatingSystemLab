@@ -86,9 +86,11 @@ void sub_process(int p_left[2], int i)
             else
                 break;
         }
+        else
+            num_read++;
         // End
         // Use pipe and fork to recursively set up and run the next sub_process if necessary
-        if (prime < 31 && !hasSub) // 有没有必要继续迭代
+        if (prime < 31 && num_read == 1) // 有没有必要继续迭代
         {
             pipe(p_right);
             pid = fork();
