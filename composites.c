@@ -70,30 +70,32 @@ void sub_process(int p_left[2], int i)
         exit(1);
     }
     char m, prime;
-    int num_read = 0, p_right[2], pid = 0;
+    int hasSub = 0, p_right[2], pid = 0;
+    close(p_left[1]);
     // prime = get a number from left neighbor
-    read(p_left[0], &prime, 1);
+    if (read(p_left[0], &prime, 1) <= 0)exit(0);
     // End
     printf("prime %d\n", prime);
     while (1)
     {
         // m = get a number from left neighbor
-        if (read(p_left[0], &m, 1) == 0)
-        {
-            pid = fork();
-            if (pid == 0)
-                sub_process(p_right, i + 1);
-            else
-                break;
-        }
-        else
-            num_read++;
+        if (read(p_left[0], &m, 1) <= 0)
+            break;
         // End
         // Use pipe and fork to recursively set up and run the next sub_process if necessary
-        if (prime < 31 && num_read == 1) // 有没有必要继续迭代
+        if (prime < 31 && hasSub== 0) // 有没有必要继续迭代
         {
             pipe(p_right);
-            close(p_left[1]);
+            pid = fork();
+            if (pid == 0) {
+                close(p_left[0]);
+                sub_process(p_right, i + 1);
+            }
+            else if (pid > 0) {
+                close(p_right[0]);
+                hasSub = 1;
+            }
+
         }
         // End
         if (m % prime != 0 && pid > 0)
@@ -106,7 +108,6 @@ void sub_process(int p_left[2], int i)
             printf("composite %d\n", m);
         }
     }
-    close(p_right[0]);
     close(p_left[0]);
     close(p_right[1]);
     // Once the write-side of left neighbor is closed, it should wait until the entire pipeline
@@ -147,7 +148,7 @@ void composites()
     Return:
     - (void)
     */
-    int p_right[2], pid, i = 0;
+    int p_right[2], pid;
     // Use pipe and fork to recursively set up and run the first sub_process
     pipe(p_right);
     pid = fork();
@@ -158,25 +159,25 @@ void composites()
     }
     if (pid > 0) // 父进程
     {
-        wait(0);
-        sub_process(p_right, i + 1);
-    }
-    // End
-    // The first process feeds the numbers 2 through 35 into the pipeline.
-    if (pid == 0) // 子进程
-    {
         close(p_right[0]);
-        for (int i = 2; i <= 35; ++i)
+        for (char i = 2; i <= 35; ++i)
         {
             write(p_right[1], &i, 1);
         }
         close(p_right[1]);
     }
     // End
+    // The first process feeds the numbers 2 through 35 into the pipeline.
+    if (pid == 0) // 子进程
+    {
+        sub_process(p_right, i + 1);
+    }
+    // End
     // Once the first process reaches 35, it should wait until the entire pipeline terminates,
     // including all children, grandchildren, &c.Thus the main primes process should only exit after all the output has been printed, and after all the other primes processes have exited.
-    // End
+    wait(0);
     exit(0);
+    // End
 }
 int main(int argc, char *argv[])
 {
